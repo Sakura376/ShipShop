@@ -12,14 +12,17 @@ app.use(express.json());
 app.get('/api/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 app.use('/api/users', userRoutes);
 
+// NUEVO: productos
+app.use('/api/products', require('./routes/productRoutes'));
+
 const PORT = process.env.PORT || 3001;
 (async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅ DB conectada');
-    app.listen(PORT, () => console.log(`🚀 Backend en http://localhost:${PORT}`));
+    console.log('DB conectada');
+    app.listen(PORT, () => console.log(`Backend en http://localhost:${PORT}`));
   } catch (e) {
-    console.error('❌ Error DB:', e);
+    console.error('Error DB:', e);
     process.exit(1);
   }
 })();

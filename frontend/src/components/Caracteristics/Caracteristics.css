@@ -1,0 +1,64 @@
+/* Estilos para NASA y SpaceX */
+.caracteristicas-nasa, .caracteristicas-spacex {
+  display: flex;
+  flex-wrap: wrap; /* Permite que las tarjetas se ajusten en pantallas más pequeñas */
+  justify-content: center; /* Centra las tarjetas */
+  align-items: flex-start;
+  gap: 30px; /* Más espacio entre las tarjetas */
+  padding: 40px;
+  background-color: #000000; /* Fondo claro para un mejor contraste */
+}
+
+/* Estilo para cada tarjeta */
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #ddd;
+  background-color: #000000; /* Fondo blanco para las tarjetas */
+  padding: 20px;
+  margin: 10px;
+  width: 250px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(79, 79, 79, 0.214); /* Sombra suave */
+  transition: transform 0.3s ease, box-shadow 0.3s ease; /* Transición suave */
+}
+
+/* Efecto de hover */
+.tarjeta:hover {
+  transform: scale(1.05); /* Agranda la tarjeta al pasar el mouse */
+  box-shadow: 0 8px 16px rgba(90, 90, 90, 0.2); /* Sombra más pronunciada en hover */
+}
+
+/* Icono */
+.icono {
+  height: 50px;
+  margin-bottom: 10px;
+  color: #bebebe; /* Color oscuro para los iconos */
+}
+
+/* Título */
+.c-title {
+  margin-bottom: 10px;
+  font-size: 20px; /* Tamaño de fuente más grande */
+  color: #d1d1d1; /* Color del texto */
+}
+
+/* Descripción */
+.c-description {
+  font-size: 14px;
+  color: #eaeaea; /* Color gris suave */
+  line-height: 1.5; /* Mejora la legibilidad */
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+  .tarjeta {
+    width: 100%; /* Las tarjetas ocupan todo el ancho en pantallas pequeñas */
+  }
+
+  .caracteristicas-nasa, .caracteristicas-spacex {
+    padding: 20px; /* Reducimos el padding en pantallas pequeñas */
+    gap: 20px;
+  }
+}

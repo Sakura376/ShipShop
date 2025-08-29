@@ -1,0 +1,46 @@
+.product-slider-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden; /* Oculta los productos que no están en pantalla */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-slider-wrapper {
+  width: 100%;
+  display: flex;
+  overflow: hidden; /* Oculta los productos fuera de vista */
+}
+
+.product-slider {
+  display: flex;
+  transition: transform 0.5s ease-in-out; /* Animación suave al desplazar */
+}
+
+.product-slider-item {
+  flex: 1 0 calc(100% / 4); 
+  box-sizing: border-box;
+  padding: 10px;
+}
+
+.product-slider-button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: white;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.product-slider-button:hover {
+  color: #f2f2f2;
+}
+
+.product-slider-button:first-of-type {
+  margin-right: 10px;
+}
+
+.product-slider-button:last-of-type {
+  margin-left: 10px;
+}
