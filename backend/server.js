@@ -14,6 +14,7 @@ require('./models'); // carga modelos y relaciones
 const userRoutes = require('./routes/userRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const orderAdminRoutes = require('./routes/orderAdminRoutes');
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use(
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/admin/orders', orderAdminRoutes);
 
 // Errores de Celebrate/Joi (debe ir después de las rutas)
 app.use(celebrateErrors());
