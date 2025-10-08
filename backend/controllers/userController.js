@@ -66,3 +66,8 @@ exports.me = async (req, res) => {
     res.status(500).json({ error: 'Error' });
   }
 };
+
+// controllers/userController.js
+exports.register = async (req, res) => { /* ... */ };
+exports.login    = async (req, res) => { /* ... */ };
+exports.me       = async (req, res) => { /* ... */ };
