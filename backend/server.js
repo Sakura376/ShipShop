@@ -6,6 +6,10 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { errors: celebrateErrors } = require('celebrate');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const openapi = YAML.load('./docs/openapi.yaml'); // <-- ruta relativa a server.js
+
 
 const sequelize = require('./config/db');
 require('./models'); // carga modelos y relaciones
@@ -43,6 +47,12 @@ app.use(
     legacyHeaders: false,
   })
 );
+
+// Rate limit global suave para /api/*
+app.use('/api/', rateLimit({ windowMs: 15*60*1000, limit: 1000, standardHeaders: true, legacyHeaders: false }));
+
+// Swagger UI
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));
 
 // Montaje de rutas
 app.use('/api/users', userRoutes);
