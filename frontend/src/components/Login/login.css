@@ -1,0 +1,136 @@
+/* Fondo oscuro y desenfoque para el modal */
+.log-modal {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.5s ease; /* Animación de entrada */
+}
+
+.log-modal.active {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.log-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  max-width: 400px;
+  padding: 30px;
+  background-color: rgba(28, 28, 28, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  color: #f1f1f1;
+  position: relative;
+  box-sizing: border-box; /* Asegura que padding no afecte el tamaño del contenedor */
+}
+
+/* Estilo para el botón de cerrar */
+.close-modal {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #f1f1f1;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.close-modal:hover {
+  color: #ff4d4d;
+}
+
+/* Contenedor para los campos de entrada con iconos */
+.input-user {
+  position: relative;
+  width: 100%;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 65%;
+  transform: translateY(-50%);
+  color: #888;
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.log-input {
+  width: 100%;
+  padding: 12px 12px 12px 40px; /* Más espacio a la izquierda para el icono */
+  border: 1px solid #444;
+  border-radius: 5px;
+  background-color: #2a2a2a;
+  color: #f1f1f1;
+  font-size: 16px;
+  line-height: 1.5; /* Ajusta la altura de línea para centrar mejor el texto */
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.log-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Estilo para los botones */
+.submit-btn,
+.register-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  box-sizing: border-box; /* Asegura que padding no afecte el tamaño del botón */
+}
+
+.submit-btn:hover,
+.register-btn:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.submit-btn:focus,
+.register-btn:focus {
+  outline: none;
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+/* Responsividad */
+@media (max-width: 600px) {
+  .log-form {
+    width: 90%;
+    padding: 20px;
+  }
+}
