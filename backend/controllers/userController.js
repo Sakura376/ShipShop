@@ -39,7 +39,7 @@ exports.login = async (req, res) => {
     }
 
     await user.update({ failed_login_attempts: 0, locked_until: null, last_login_at: new Date() });
-    const token = jwt.sign({ id: user.user_id }, process.env.JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign({ id: user.user_id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '2h' });
     return res.json({ token, user: { user_id: user.user_id, username: user.username, email: user.email } });
   } catch (e) {
     console.error(e);
@@ -156,7 +156,7 @@ exports.verifyEmail = async (req, res) => {
 
     await pending.update({ used_at: new Date() });
 
-    const token = jwt.sign({ id: user.user_id }, process.env.JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign({ id: user.user_id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '2h' });
     return res.json({ token, user: { user_id: user.user_id, username: user.username, email: user.email } });
   } catch (e) {
     console.error(e);

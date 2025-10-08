@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
     caracteristics:   { type: DataTypes.TEXT },
     image_product:    { type: DataTypes.STRING(512) },
     image_info:       { type: DataTypes.STRING(512) },
-    price:       { type: DataTypes.DECIMAL(12,2), allowNull: false },
+    price:       { type: DataTypes.DECIMAL(12,2), allowNull: false, get() { return Number(this.getDataValue('price')); }},
     quantity:    { type: DataTypes.INTEGER.UNSIGNED, defaultValue: 0 },
     is_active:   { type: DataTypes.BOOLEAN, defaultValue: true },
   }, {
