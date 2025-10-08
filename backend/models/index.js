@@ -1,31 +1,24 @@
-// backend/models/index.js
 const { Sequelize, DataTypes } = require('sequelize');
-const sequelize = require('../config/db'); // Debe exportar una instancia de Sequelize
+const sequelize = require('../config/db');
 
+// 1) Crear el contenedor primero
 const db = {};
-
-// Mantén la instancia y la clase
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-// ===== Carga de modelos =====
-db.User    = require('./user')(sequelize, DataTypes);
-db.Product = require('./product')(sequelize, DataTypes);
+// 2) Registrar modelos
+db.User        = require('./user')(sequelize, DataTypes);
+db.Product     = require('./product')(sequelize, DataTypes);
 db.PendingUser = require('./pending_user')(sequelize, DataTypes);
-// ===== Asociaciones (si luego las agregas) =====
-// p.ej. db.Product.hasMany(db.ProductRating, { foreignKey: 'product_id' });
+db.Order       = require('./order')(sequelize, DataTypes);
+db.OrderDetail = require('./order_detail')(sequelize, DataTypes);
 
-// Opcional: helper para sincronizar según entorno
-db.init = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('Conexión a DB OK');
-    // OJO: NUNCA uses force:true en prod.
-    // await sequelize.sync({ alter: true });
-  } catch (err) {
-    console.error('Error conectando DB:', err);
-    throw err;
-  }
-};
+// 3) Relaciones
+db.Order.hasMany(db.OrderDetail,   { foreignKey: 'order_id' });
+db.OrderDetail.belongsTo(db.Order, { foreignKey: 'order_id' });
 
+db.Product.hasMany(db.OrderDetail,   { foreignKey: 'product_id' });
+db.OrderDetail.belongsTo(db.Product, { foreignKey: 'product_id' });
+
+// 4) Exportar
 module.exports = db;
