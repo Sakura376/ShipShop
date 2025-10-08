@@ -11,7 +11,7 @@ db.Sequelize = Sequelize;
 // ===== Carga de modelos =====
 db.User    = require('./user')(sequelize, DataTypes);
 db.Product = require('./product')(sequelize, DataTypes);
-
+db.PendingUser = require('./pending_user')(sequelize, DataTypes);
 // ===== Asociaciones (si luego las agregas) =====
 // p.ej. db.Product.hasMany(db.ProductRating, { foreignKey: 'product_id' });
 
