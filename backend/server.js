@@ -9,7 +9,7 @@ const { errors: celebrateErrors } = require('celebrate');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const openapi = YAML.load('./docs/openapi.yaml'); // <-- ruta relativa a server.js
-
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const sequelize = require('./config/db');
 require('./models'); // carga modelos y relaciones
@@ -59,6 +59,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin/orders', orderAdminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Errores de Celebrate/Joi (debe ir después de las rutas)
 app.use(celebrateErrors());

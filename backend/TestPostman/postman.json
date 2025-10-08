@@ -1,0 +1,448 @@
+{
+  "info": {
+    "name": "ShipShop API",
+    "_postman_id": "a2b0d25a-shipshop-collection",
+    "description": "Colección completa para probar ShipShop (Auth OTP, Forgot/Reset, Products, Orders, Ratings, Payments, Admin).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Si no existe, genera un Idempotency-Key simple por request",
+          "pm.variables.set('idemKey', (Date.now() + '-' + Math.random().toString(16).slice(2)));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users (Auth + OTP + Forgot/Reset)",
+      "item": [
+        {
+          "name": "POST /api/users/register (envía OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/users/register", "host": ["{{baseUrl}}"], "path": ["api","users","register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/users/verify (usar OTP de Mailtrap)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/users/verify", "host": ["{{baseUrl}}"], "path": ["api","users","verify"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{otp}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.token) pm.environment.set('token', data.token);",
+                  "  if (data && data.user) pm.environment.set('userId', data.user.user_id || '');",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /api/users/login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/users/login", "host": ["{{baseUrl}}"], "path": ["api","users","login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.token) pm.environment.set('token', data.token);",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /api/users/me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api","users","me"] }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/users/resend (reenvía OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/users/resend", "host": ["{{baseUrl}}"], "path": ["api","users","resend"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"{{email}}\" }"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/users/forgot (solicitar código reset)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/users/forgot", "host": ["{{baseUrl}}"], "path": ["api","users","forgot"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"{{email}}\" }"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/users/reset (usar código reset)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/users/reset", "host": ["{{baseUrl}}"], "path": ["api","users","reset"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{reset_code}}\",\n  \"new_password\": \"{{new_password}}\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "GET /api/products (list público)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/products?q={{q}}&minPrice={{minPrice}}&maxPrice={{maxPrice}}&active={{active}}&page={{page}}&pageSize={{pageSize}}&sort={{sort}}&dir={{dir}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","products"],
+              "query": [
+                { "key": "q", "value": "{{q}}" },
+                { "key": "minPrice", "value": "{{minPrice}}" },
+                { "key": "maxPrice", "value": "{{maxPrice}}" },
+                { "key": "active", "value": "{{active}}" },
+                { "key": "page", "value": "{{page}}" },
+                { "key": "pageSize", "value": "{{pageSize}}" },
+                { "key": "sort", "value": "{{sort}}" },
+                { "key": "dir", "value": "{{dir}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/products/{id}",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","products","{{productId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/products (admin - crear)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api","products"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"COH-FH-0001\",\n  \"title\": \"Falcon Heavy\",\n  \"tipo_nave\": \"Carguero\",\n  \"description\": \"Cohete pesado\",\n  \"price\": 123456789.99,\n  \"quantity\": 3,\n  \"is_active\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.product_id) pm.environment.set('productId', data.product_id);",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "PATCH /api/products/{id} (admin - update)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","products","{{productId}}"] },
+            "body": { "mode": "raw", "raw": "{ \"quantity\": 5, \"price\": 123456700 }" }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/products/{id} (admin - delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","products","{{productId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/products/{id}/ratings (público)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}/ratings?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","products","{{productId}}","ratings"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/products/{id}/ratings (auth + compra previa)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}/ratings", "host": ["{{baseUrl}}"], "path": ["api","products","{{productId}}","ratings"] },
+            "body": { "mode": "raw", "raw": "{ \"rating\": 5, \"comment\": \"Espectacular 🚀\" }" }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orders (User)",
+      "item": [
+        {
+          "name": "POST /api/orders (crear orden)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    { \"product_id\": {{productId}}, \"quantity\": 1 }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.order_id) pm.environment.set('orderId', data.order_id);",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET /api/orders (mis órdenes)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/orders/{id} (mi orden)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["api","orders","{{orderId}}"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin Orders",
+      "item": [
+        {
+          "name": "PATCH /api/admin/orders/{id}/status (admin → paid)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/admin/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api","admin","orders","{{orderId}}","status"] },
+            "body": { "mode": "raw", "raw": "{ \"status\": \"paid\" }" }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments (Mock + Idempotencia)",
+      "item": [
+        {
+          "name": "POST /api/payments (mock succeed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idemKey}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api","payments"] },
+            "body": { "mode": "raw", "raw": "{ \"order_id\": {{orderId}}, \"currency\": \"{{currency}}\", \"mock\": \"succeed\" }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.provider_ref) pm.environment.set('providerRef', data.provider_ref);",
+                  "  if (data && data.id) pm.environment.set('paymentIntentId', data.id);",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /api/payments (mock process → webhook luego)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{idemKey}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/payments", "host": ["{{baseUrl}}"], "path": ["api","payments"] },
+            "body": { "mode": "raw", "raw": "{ \"order_id\": {{orderId}}, \"currency\": \"{{currency}}\", \"mock\": \"process\" }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.provider_ref) pm.environment.set('providerRef', data.provider_ref);",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST /api/payments/webhook (simular proveedor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Payment-Signature", "value": "{{payment_webhook_secret}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/payments/webhook", "host": ["{{baseUrl}}"], "path": ["api","payments","webhook"] },
+            "body": { "mode": "raw", "raw": "{ \"provider_ref\": \"{{providerRef}}\", \"status\": \"succeeded\" }" }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "username", "value": "capitan" },
+    { "key": "email", "value": "cap@ship.shop" },
+    { "key": "password", "value": "SuperSecreto123!" },
+    { "key": "otp", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "productId", "value": "1" },
+    { "key": "orderId", "value": "1" },
+    { "key": "currency", "value": "USD" },
+    { "key": "idemKey", "value": "" },
+    { "key": "providerRef", "value": "" },
+    { "key": "paymentIntentId", "value": "" },
+    { "key": "q", "value": "falcon" },
+    { "key": "minPrice", "value": "0" },
+    { "key": "maxPrice", "value": "" },
+    { "key": "active", "value": "1" },
+    { "key": "page", "value": "1" },
+    { "key": "pageSize", "value": "10" },
+    { "key": "sort", "value": "price" },
+    { "key": "dir", "value": "ASC" },
+    { "key": "reset_code", "value": "" },
+    { "key": "new_password", "value": "NuevaClave123!" },
+    { "key": "payment_webhook_secret", "value": "devsecret" }
+  ]
+}

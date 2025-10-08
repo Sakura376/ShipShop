@@ -14,7 +14,7 @@ db.Order       = require('./order')(sequelize, DataTypes);
 db.OrderDetail = require('./order_detail')(sequelize, DataTypes);
 db.ProductRating = require('./product_Rating')(sequelize, DataTypes);
 db.PendingReset = require('./pending_reset')(sequelize, DataTypes);
-
+db.PaymentIntent = require('./payment_intent')(sequelize, DataTypes);
 
 // 3) Relaciones
 db.Order.hasMany(db.OrderDetail,   { foreignKey: 'order_id' });
@@ -28,6 +28,9 @@ db.ProductRating.belongsTo(db.Product, { foreignKey: 'product_id' });
 
 db.User.hasMany(db.ProductRating, { foreignKey: 'user_id' });
 db.ProductRating.belongsTo(db.User, { foreignKey: 'user_id' });
+
+db.Order.hasMany(db.PaymentIntent, { foreignKey: 'order_id' });
+db.PaymentIntent.belongsTo(db.Order, { foreignKey: 'order_id' });
 
 // 4) Exportar
 module.exports = db;
