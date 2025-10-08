@@ -13,6 +13,8 @@ db.PendingUser = require('./pending_user')(sequelize, DataTypes);
 db.Order       = require('./order')(sequelize, DataTypes);
 db.OrderDetail = require('./order_detail')(sequelize, DataTypes);
 db.ProductRating = require('./product_Rating')(sequelize, DataTypes);
+db.PendingReset = require('./pending_reset')(sequelize, DataTypes);
+
 
 // 3) Relaciones
 db.Order.hasMany(db.OrderDetail,   { foreignKey: 'order_id' });
