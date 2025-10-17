@@ -1,0 +1,6 @@
+projectKey=shipshop-backend
+serverUrl=http://localhost:9000
+serverVersion=25.10.0.114319
+dashboardUrl=http://localhost:9000/dashboard?id=shipshop-backend
+ceTaskId=da960c97-1aa8-4daa-bdd7-f731bf2433be
+ceTaskUrl=http://localhost:9000/api/ce/task?id=da960c97-1aa8-4daa-bdd7-f731bf2433be

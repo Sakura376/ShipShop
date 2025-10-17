@@ -1,5 +1,5 @@
 const { sequelize, Order, PaymentIntent } = require('../models');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 function safeEq(a,b){ // comparación de firma
   const A = Buffer.from(String(a || ''));

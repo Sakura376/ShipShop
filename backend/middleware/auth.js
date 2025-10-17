@@ -1,7 +1,7 @@
 // backend/middleware/auth.js
 const jwt = require('jsonwebtoken');
 
-module.exports = (req, res, next) => {
+module.exports = function authMiddleware(req, res, next) {
   try {
     const hdr = req.headers.authorization || '';
     const [scheme, token] = hdr.split(' ');
@@ -12,7 +12,7 @@ module.exports = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     // Esperamos que el payload tenga { id, email }
-    if (!decoded || !decoded.id || !decoded.email) {
+    if (!decoded?.id || !decoded?.email) {
       return res.status(401).json({ error: 'Token inválido' });
     }
 

@@ -1,7 +1,7 @@
 // backend/middleware/requireAdmin.js
 module.exports = (req, res, next) => {
   try {
-    if (!req.user || !req.user.email) return res.status(401).json({ error: 'No autenticado' });
+    if (!req?.user.email) return res.status(401).json({ error: 'No autenticado' });
 
     const admins = String(process.env.ADMIN_EMAILS || '')
       .split(',')

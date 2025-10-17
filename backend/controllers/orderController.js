@@ -1,5 +1,5 @@
-const { sequelize } = require('../models');
-const { Order, OrderDetail, Product } = require('../models');
+// controllers/orderController.js
+const { sequelize, Order, OrderDetail, Product } = require('../models');
 
 exports.create = async (req, res) => {
   const t = await sequelize.transaction();
@@ -8,43 +8,58 @@ exports.create = async (req, res) => {
     const items = Array.isArray(req.body.items) ? req.body.items : [];
     if (!items.length) return res.status(400).json({ error: 'Items requeridos' });
 
-    // Validar y calcular totales + controlar stock
     let total = 0;
+
+    // Validar cada item y afectar stock
     for (const it of items) {
-      const prod = await Product.findByPk(it.product_id, { transaction: t, lock: t.LOCK.UPDATE });
-      if (!prod || !prod.is_active) throw new Error('Producto no disponible');
-      if (it.quantity < 1) throw new Error('Cantidad inválida');
-      if (prod.quantity < it.quantity) throw new Error('Stock insuficiente');
+      const qty = Number(it.quantity);
+      if (!Number.isInteger(qty) || qty < 1) throw new Error('Cantidad inválida');
 
-      total += Number(prod.price) * it.quantity;
-      await prod.update({ quantity: prod.quantity - it.quantity }, { transaction: t });
+      const prod = await Product.findByPk(it.product_id, { transaction: t /*, lock: t.LOCK.UPDATE */ });
+
+      // activo en MySQL(1/0) y SQLite(true/false)
+      const active = prod && (prod.is_active === true || prod.is_active === 1);
+      if (!prod || !active) throw new Error('Producto no disponible');
+
+      if (Number(prod.quantity) < qty) throw new Error('Stock insuficiente');
+
+      total += Number(prod.price) * qty;
+
+      // descuenta stock
+      await prod.update(
+        { quantity: Number(prod.quantity) - qty },
+        { transaction: t }
+      );
     }
 
-    const order = await Order.create({ user_id: userId, total, status: 'created' }, { transaction: t });
+    // Crea la orden
+    const order = await Order.create(
+      { user_id: userId, total, status: 'created' },
+      { transaction: t }
+    );
 
-    const rows = items.map(x => ({
-      order_id: order.order_id,
-      product_id: x.product_id,
-      quantity: x.quantity,
-      unit_price: x.unit_price ?? undefined // opcional; si no viene, usa precio actual
-    }));
+    // Crea los detalles (usando precio actual si no viene)
+    for (const it of items) {
+      const prod = await Product.findByPk(it.product_id, { transaction: t });
+      const unitPrice = Number(it.unit_price ?? prod.price);
 
-    // Completar unit_price con precio actual si no vino en request
-    for (const r of rows) {
-      if (r.unit_price == null) {
-        const p = await Product.findByPk(r.product_id, { transaction: t });
-        r.unit_price = Number(p.price);
-      }
+      await OrderDetail.create(
+        {
+          order_id: order.order_id,
+          product_id: it.product_id,
+          quantity: Number(it.quantity),
+          unit_price: unitPrice,
+        },
+        { transaction: t }
+      );
     }
-
-    await OrderDetail.bulkCreate(rows, { transaction: t });
 
     await t.commit();
-    res.status(201).json({ order_id: order.order_id, total, status: order.status });
+    return res.status(201).json({ order_id: order.order_id, total, status: order.status });
   } catch (e) {
     await t.rollback();
     console.error(e);
-    res.status(400).json({ error: e.message || 'No se pudo crear la orden' });
+    return res.status(400).json({ error: e.message || 'No se pudo crear la orden' });
   }
 };
 
@@ -53,13 +68,15 @@ exports.listMine = async (req, res) => {
     const userId = req.user.id;
     const orders = await Order.findAll({
       where: { user_id: userId },
-      order: [['order_date','DESC']],
-      attributes: ['order_id','total','status','order_date']
+      order: [['order_date', 'DESC']],
+      attributes: ['order_id', 'total', 'status', 'order_date'],
     });
-    res.json(orders);
+    // (opcional) estandariza shape:
+    // return res.json({ items: orders });
+    return res.json(orders);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Error listando órdenes' });
+    return res.status(500).json({ error: 'Error listando órdenes' });
   }
 };
 
@@ -68,12 +85,12 @@ exports.getMine = async (req, res) => {
     const userId = req.user.id;
     const order = await Order.findOne({
       where: { order_id: req.params.id, user_id: userId },
-      include: [{ model: OrderDetail, include: [{ model: Product, attributes:['title','sku'] }] }]
+      include: [{ model: OrderDetail, include: [{ model: Product, attributes: ['title', 'sku'] }] }],
     });
     if (!order) return res.status(404).json({ error: 'No encontrada' });
-    res.json(order);
+    return res.json(order);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Error obteniendo orden' });
+    return res.status(500).json({ error: 'Error obteniendo orden' });
   }
 };
