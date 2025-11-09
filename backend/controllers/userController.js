@@ -1,19 +1,24 @@
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
-const { User, PendingUser } = require('../models');
+const { sequelize, User, PendingUser } = require('../models');
 const mailer = require('../config/mailer');
+const crypto = require('node:crypto');
 
 
 function genOTP() {
-  return String(Math.floor(100000 + Math.random() * 900000)); // 6 dígitos
+  const n = crypto.randomInt(0, 1_000_000);
+  return String(n).padStart(6, '0');
 }
 
 function addMinutes(date, minutes) {
   return new Date(date.getTime() + minutes * 60000);
 }
 
-
+function safeFromEmail(email) {
+  const base = String(email).split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '');
+  return base || 'usuario';
+}
 
 // POST /api/users/login
 exports.login = async (req, res) => {
@@ -84,13 +89,13 @@ exports.register = async (req, res) => {
     // Upsert en pending_users
     const [pending, created] = await PendingUser.findOrCreate({
       where: { email },
-      defaults: { email, username, password_hash, password_algo: 'argon2id', code_hash, expires_at: expiresAt },
+      defaults: { email, username, password_hash, hash_algo: 'argon2id', code_hash, expires_at: expiresAt },
     });
     if (!created) {
       await pending.update({
         username,
         password_hash,
-        password_algo: 'argon2id',
+        hash_algo: 'argon2id',
         code_hash,
         attempts: 0,
         expires_at: expiresAt,
@@ -124,41 +129,70 @@ exports.register = async (req, res) => {
 
 // POST /api/users/verify   { email, code }
 exports.verifyEmail = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     let { email, code } = req.body;
-    if (!email || !code) return res.status(400).json({ error: 'Email y código requeridos' });
+    if (!email || !code) {
+      await t.rollback();
+      return res.status(400).json({ error: 'Email y código requeridos' });
+    }
     email = String(email).trim();
 
-    const pending = await PendingUser.findOne({ where: { email } });
-    if (!pending) return res.status(404).json({ error: 'No hay registro pendiente' });
-    if (pending.used_at) return res.status(409).json({ error: 'Este registro ya fue verificado' });
-    if (new Date(pending.expires_at) < new Date()) return res.status(410).json({ error: 'Código expirado' });
-    if ((pending.attempts || 0) >= 5) return res.status(423).json({ error: 'Demasiados intentos. Solicita reenvío.' });
+    const pending = await PendingUser.findOne({ where: { email }, transaction: t, lock: t.LOCK.UPDATE });
+    if (!pending)            { await t.rollback(); return res.status(404).json({ error: 'No hay registro pendiente' }); }
+    if (pending.used_at)     { await t.rollback(); return res.status(409).json({ error: 'Este registro ya fue verificado' }); }
+    if (new Date(pending.expires_at) < new Date()) { await t.rollback(); return res.status(410).json({ error: 'Código expirado' }); }
+    if ((pending.attempts || 0) >= 5) { await t.rollback(); return res.status(423).json({ error: 'Demasiados intentos. Solicita reenvío.' }); }
 
     const ok = await argon2.verify(pending.code_hash, String(code));
     if (!ok) {
-      await pending.update({ attempts: (pending.attempts || 0) + 1 });
+      await pending.update({ attempts: (pending.attempts || 0) + 1 }, { transaction: t });
+      await t.commit();
       return res.status(400).json({ error: 'Código inválido' });
     }
 
-    // Crear usuario definitivo
-    const dup = await User.findOne({ where: { [Op.or]: [{ username: pending.username }, { email: pending.email }] } });
-    if (dup) return res.status(409).json({ error: 'Usuario o email ya existe' });
+    // Preparar name/username seguros si faltan
+    const fallback = safeFromEmail(email);
+    const name = pending.name && pending.name.trim() ? pending.name.trim() : fallback;   // 👈 evita notNull
+    const username = pending.username && pending.username.trim() ? pending.username.trim() : fallback;
 
-    const user = await User.create({
-      username: pending.username,
-      email: pending.email,
-      password_hash: pending.password_hash,
-      password_algo: pending.password_algo || 'argon2id',
-      status: 'active',
-      email_verified_at: new Date(),
+    // Evitar duplicados
+    const dup = await User.findOne({
+      where: { [Op.or]: [{ username }, { email: pending.email }] },
+      transaction: t,
+      lock: t.LOCK.UPDATE
     });
+    if (dup) {
+      await t.rollback();
+      return res.status(409).json({ error: 'Usuario o email ya existe' });
+    }
 
-    await pending.update({ used_at: new Date() });
+    // Crear usuario definitivo (INCLUYENDO name)
+    const user = await User.create({
+      name,                                  // 👈 requerido por tu modelo
+      username,
+      email: pending.email,
+      password_hash: pending.password_hash,  // asumiendo que tu modelo usa snake_case
+      hash_algo: pending.hash_algo || 'argon2id',
+      status: 'active',
+      email_verified_at: new Date()
+    }, { transaction: t });
 
-    const token = jwt.sign({ id: user.user_id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '2h' });
-    return res.json({ token, user: { user_id: user.user_id, username: user.username, email: user.email } });
+    await pending.update({ used_at: new Date(), attempts: 0 }, { transaction: t });
+
+    await t.commit();
+
+    const token = jwt.sign(
+      { id: user.user_id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '2h' }
+    );
+    return res.json({
+      token,
+      user: { user_id: user.user_id, username: user.username, name: user.name, email: user.email }
+    });
   } catch (e) {
+    await t.rollback();
     console.error(e);
     return res.status(500).json({ error: 'Error verificando correo' });
   }
