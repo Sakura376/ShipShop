@@ -1,7 +1,5 @@
+// ejemplo de config/db.js que exporta la instancia
 const { Sequelize } = require('sequelize');
-
-const dialect = process.env.DB_DIALECT || 'mysql';
-const storage = process.env.DB_STORAGE;
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -9,10 +7,14 @@ const sequelize = new Sequelize(
   process.env.DB_PASS,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect,
-    storage,   // usado por sqlite
-    logging: false,
+    port: Number(process.env.DB_PORT || 3306),
+    dialect: process.env.DB_DIALECT || 'mysql',
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    dialectOptions: {
+      ssl: process.env.DB_SSL === 'true' ? { require: true, rejectUnauthorized: false } : undefined,
+    },
+    pool: { max: 10, min: 0, acquire: 20000, idle: 10000 },
+    timezone: '+00:00',
   }
 );
 

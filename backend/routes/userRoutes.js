@@ -11,11 +11,7 @@ const passwordResetController = require('../controllers/passwordResetController'
 // limits específicos
 const limitForgot = rateLimit({ windowMs: 15*60*1000, limit: 5, standardHeaders:true, legacyHeaders:false });
 const limitReset  = rateLimit({ windowMs: 15*60*1000, limit: 10, standardHeaders:true, legacyHeaders:false });
-// Registro y autenticación
-router.post('/register', userController.register);
-router.post('/login',    userController.login);
-router.post('/verify',   userController.verifyEmail);
-router.post('/resend',   userController.resendCode);
+
 // Registro y autenticación (con límites + validación)
 router.post('/register', limitRegister, validateRegister, userController.register);
 router.post('/login',    limitLogin,    validateLogin,    userController.login);

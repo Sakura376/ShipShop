@@ -28,3 +28,6 @@ dist/
 # Output directories
 build/
 tmp/
+
+.env
+.env.*.local

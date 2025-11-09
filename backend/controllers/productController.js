@@ -1,41 +1,55 @@
 const { Op } = require('sequelize');
 const { Product } = require('../models');
 
-// GET /api/products
 exports.list = async (req, res) => {
   try {
-    const { q, minPrice, maxPrice, active, page = 1, pageSize = 20, sort = 'created_at', dir = 'DESC' } = req.query;
+    const { q, minPrice, maxPrice, active, page = 1, pageSize = 12, sort = 'created_at', dir = 'DESC' } = req.query;
 
     const where = {};
     if (q) where.title = { [Op.like]: `%${q}%` };
-    if (minPrice != null || maxPrice != null) {
-      where.price = {};
-      if (minPrice != null) where.price[Op.gte] = Number(minPrice);
-      if (maxPrice != null) where.price[Op.lte] = Number(maxPrice);
-    }
-    if (active != null) where.is_active = Number(active) === 1;
+    if (minPrice) where.price = { ...(where.price || {}), [Op.gte]: Number(minPrice) };
+    if (maxPrice) where.price = { ...(where.price || {}), [Op.lte]: Number(maxPrice) };
+    if (active !== undefined) where.is_active = Number(active); // ← columna real en DB
 
-    const offset = (Number(page) - 1) * Number(pageSize);
-    const order = [[sort, dir]];
+    const limit = Math.max(1, Number(pageSize));
+    const offset = (Math.max(1, Number(page)) - 1) * limit;
+
     const { rows, count } = await Product.findAndCountAll({
-      where, order, limit: Number(pageSize), offset
+      where,
+      order: [[sort, dir]],
+      limit,
+      offset
     });
 
     res.json({
-      items: rows,
+      items: rows.map(p => ({
+        id: p.product_id,
+        sku: p.sku,
+        title: p.title,
+        description: p.description,
+        descriptionInfo: p.descriptionInfo,
+        imageUrl: p.imageUrl,
+        imageInfo: p.imageInfo,
+        tipoNave: p.tipoNave,
+        caracteristics: p.caracteristics,
+        price: Number(p.price),
+        quantity: p.quantity,
+        active: p.active
+      })),
       meta: {
         page: Number(page),
-        pageSize: Number(pageSize),
+        pageSize: limit,
         total: count,
-        totalPages: Math.ceil(count / Number(pageSize)) || 1,
+        totalPages: Math.ceil(count / limit),
         sort, dir
       }
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Error listando productos' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
+
 
 // GET /api/products/:id
 exports.getById = async (req, res) => {

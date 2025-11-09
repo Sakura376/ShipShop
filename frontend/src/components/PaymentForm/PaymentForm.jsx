@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 import axios from "axios";
 import "./PaymentForm.css";
+import { v4 as uuid } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCreditCard, faCalendarAlt, faLock, faUser } from "@fortawesome/free-solid-svg-icons";
-import { API_URL } from "../../config"; // Asegúrate de tener la URL base configurada
+import { API_URL } from "../../config"; // o toma de services/api si prefieres
 
-const PaymentForm = ({ onClose, onConfirmPayment, totalAmount }) => {
+// Props:
+// - onClose(): cierra el modal
+// - onConfirmPayment(): callback para vaciar carrito / finalizar
+// - totalAmount: número mostrado en UI
+// - orderId: (opcional) si no llega, se toma de localStorage('order_id')
+const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdProp }) => {
   const [formData, setFormData] = useState({
     cardNumber: "",
     expiryDate: "",
@@ -14,68 +20,69 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount }) => {
   });
   const [error, setError] = useState("");
   const [confirmationMessage, setConfirmationMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validar que todos los campos estén llenos
+    // (Opcional) Validación de campos de tarjeta solo para UI. El backend NO usa estos datos.
     if (!formData.cardNumber || !formData.expiryDate || !formData.cvv || !formData.cardholderName) {
       setError("Por favor, complete todos los campos.");
       return;
     }
 
     try {
-      const userId = localStorage.getItem("userId");
-      const token = localStorage.getItem("token");
+      setSubmitting(true);
+      setError("");
 
-      // Enviar datos de la orden a la API
+      const token = localStorage.getItem("token");
+      const orderId = Number(orderIdProp ?? localStorage.getItem("order_id"));
+      if (!orderId) {
+        setError("No se encontró la orden. Vuelve al carrito e intenta de nuevo.");
+        setSubmitting(false);
+        return;
+      }
+
       await axios.post(
-        `${API_URL}/orderFinal/create`,
-        {
-          user_id: userId,
-          total:totalAmount
-        },
+        `${API_URL}/api/payments`,
+        { order_id: orderId },
         {
           headers: {
             Authorization: `Bearer ${token}`,
-          }
+            "Idempotency-Key": uuid(), // ← requerido por tu backend
+          },
         }
       );
 
-      // Mostrar mensaje de confirmación y vaciar el carrito
       setConfirmationMessage("¡Compra confirmada!");
-      setError("");
-      onConfirmPayment(); // Llama a la función para vaciar el carrito
+      onConfirmPayment?.(); // limpia carrito en el padre si aplica
 
-      // Limpia el formulario y cierra el modal después de un breve retraso
       setTimeout(() => {
         setConfirmationMessage("");
-        setFormData({
-          cardNumber: "",
-          expiryDate: "",
-          cvv: "",
-          cardholderName: ""
-        });
+        setFormData({ cardNumber: "", expiryDate: "", cvv: "", cardholderName: "" });
         onClose();
-      }, 2000);
-    } catch (error) {
-      console.error("Error al confirmar el pago:", error.response?.data || error.message);
-      setError("Error al procesar el pago.");
+      }, 1500);
+    } catch (err) {
+      console.error("Error al confirmar el pago:", err?.response?.data || err?.message);
+      const status = err?.response?.status;
+      if (status === 409) setError("La orden no puede pagarse o la solicitud fue duplicada.");
+      else setError("Error al procesar el pago. Intenta nuevamente.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const handleOverlayClick = (e) => {
+    // Cierre robusto por click fuera
+    if (e.currentTarget === e.target) onClose();
+  };
+
   return (
-    <div className='payment-form-overlay' onClick={(e) => {
-      if (e.target.className === "payment-form-overlay") {
-        onClose();
-      }
-    }}>
-      <div className='payment-form'>
-        <form className='f-payment' onSubmit={handleSubmit}>
+    <div className="payment-form-overlay" onClick={handleOverlayClick}>
+      <div className="payment-form" role="dialog" aria-modal="true" aria-label="Pago">
+        <form className="f-payment" onSubmit={handleSubmit}>
           <div className="input-payment">
             <FontAwesomeIcon icon={faCreditCard} className="input-icon" />
             <input
@@ -85,6 +92,7 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount }) => {
               value={formData.cardNumber}
               onChange={handleChange}
               placeholder="Número de tarjeta"
+              autoComplete="cc-number"
             />
           </div>
 
@@ -96,7 +104,8 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount }) => {
               name="expiryDate"
               value={formData.expiryDate}
               onChange={handleChange}
-              placeholder="Fecha de vencimiento"
+              placeholder="Fecha de vencimiento (MM/AA)"
+              autoComplete="cc-exp"
             />
           </div>
 
@@ -109,6 +118,7 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount }) => {
               value={formData.cvv}
               onChange={handleChange}
               placeholder="CVV"
+              autoComplete="cc-csc"
             />
           </div>
 
@@ -121,14 +131,25 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount }) => {
               value={formData.cardholderName}
               onChange={handleChange}
               placeholder="Nombre del titular"
+              autoComplete="cc-name"
             />
           </div>
 
+          {totalAmount != null && (
+            <p className="total-pay">Total: ${Number(totalAmount).toFixed(2)}</p>
+          )}
+
           {error && <p className="error-message">{error}</p>}
           {confirmationMessage && <p className="confirmation-message">{confirmationMessage}</p>}
-          <button className="p-button" type="submit">Confirmar Pago</button>
+
+          <button className="p-button" type="submit" disabled={submitting} aria-busy={submitting}>
+            {submitting ? "Procesando..." : "Confirmar Pago"}
+          </button>
         </form>
-        <button className="close-btn" onClick={onClose}>Cerrar</button>
+
+        <button className="close-btn" type="button" onClick={onClose} aria-label="Cerrar">
+          Cerrar
+        </button>
       </div>
     </div>
   );

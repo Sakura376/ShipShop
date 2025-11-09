@@ -14,25 +14,27 @@ function Login({ closeModal, statusModal, onLoginSuccess }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     try {
-      const response = await axios.post(`${API_URL}/users/login`, {
+      const { data } = await axios.post(`${API_URL}/api/users/login`, {
         email: username,
-        password: password
+        password,
       });
+      localStorage.setItem("token", data.token);
 
-      if (response.status === 200) {
-        alert("Inicio de sesión exitoso");
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("userName", response.data.username); // Guardamos el nombre de usuario desde la respuesta
-        localStorage.setItem("userId", response.data.userId); // Guardamos el user_id desde la respuesta
-        onLoginSuccess(response.data.username); // Llamamos a la función de éxito del login
-        closeModal();
-        navigate("/");
-      }
-    } catch (error) {
-      console.error("Error en el inicio de sesión:", error);
-      alert("Correo o contraseña incorrectos");
+      const me = await axios.get(`${API_URL}/api/users/me`, {
+        headers: { Authorization: `Bearer ${data.token}` },
+      });
+      localStorage.setItem("user", JSON.stringify(me.data));
+
+      onLoginSuccess?.(me.data.name);
+      closeModal();
+      navigate("/");
+    } catch (err) {
+      const s = err?.response?.status;
+      if (s === 423)
+        return alert("Cuenta bloqueada temporalmente por intentos fallidos.");
+      if (s === 401) return alert("Correo o contraseña incorrectos.");
+      alert("No se pudo iniciar sesión. Intenta de nuevo.");
     }
   };
 
@@ -43,34 +45,44 @@ function Login({ closeModal, statusModal, onLoginSuccess }) {
 
   return (
     <div className={`log-modal ${statusModal && "active"}`}>
-      <button onClick={closeModal} className="close-modal">&times;</button>
-      <form className="log-form" onSubmit={handleLogin}>
-        <div className="input-user">
-          <label className="log-lbl" htmlFor="username">Email:</label>
-          <FontAwesomeIcon icon={faUser} className="input-icon" />
+      <button onClick={closeModal} className='close-modal'>
+        &times;
+      </button>
+      <form className='log-form' onSubmit={handleLogin}>
+        <div className='input-user'>
+          <label className='log-lbl' htmlFor='username'>
+            Email:
+          </label>
+          <FontAwesomeIcon icon={faUser} className='input-icon' />
           <input
-            className="log-input"
-            type="text"
-            id="username"
+            className='log-input'
+            type='text'
+            id='username'
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
         </div>
 
-        <div className="input-user">
-          <label className="log-lbl" htmlFor="password">Password:</label>
-          <FontAwesomeIcon icon={faLock} className="input-icon" />
+        <div className='input-user'>
+          <label className='log-lbl' htmlFor='password'>
+            Password:
+          </label>
+          <FontAwesomeIcon icon={faLock} className='input-icon' />
           <input
-            className="log-input"
-            type="password"
-            id="password"
+            className='log-input'
+            type='password'
+            id='password'
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
-        <button className="submit-btn" type="submit">Login</button>
-        <button className="register-btn" type="button" onClick={handleRegister}>Register</button>
+        <button className='submit-btn' type='submit'>
+          Login
+        </button>
+        <button className='register-btn' type='button' onClick={handleRegister}>
+          Register
+        </button>
       </form>
     </div>
   );
@@ -79,7 +91,7 @@ function Login({ closeModal, statusModal, onLoginSuccess }) {
 Login.propTypes = {
   closeModal: PropTypes.func.isRequired,
   statusModal: PropTypes.bool.isRequired,
-  onLoginSuccess: PropTypes.func.isRequired // Validamos que onLoginSuccess esté definido
+  onLoginSuccess: PropTypes.func.isRequired, // Validamos que onLoginSuccess esté definido
 };
 
 export default Login;
