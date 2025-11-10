@@ -18,8 +18,9 @@ exports.create = async (req, res) => {
       const prod = await Product.findByPk(it.product_id, { transaction: t /*, lock: t.LOCK.UPDATE */ });
 
       // activo en MySQL(1/0) y SQLite(true/false)
-      const active = prod && (prod.is_active === true || prod.is_active === 1);
+      const active = prod && (prod.active === true || prod.active === 1);
       if (!prod || !active) throw new Error('Producto no disponible');
+
 
       if (Number(prod.quantity) < qty) throw new Error('Stock insuficiente');
 
