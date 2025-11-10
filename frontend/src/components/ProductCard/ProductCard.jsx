@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./Products.css";
 import { useCart } from "../CartModal/CartGlobal";
 import ProductDetailsModal from "./ProductDetailsModal";
 import { API_URL } from "../../config";
+
+const FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80&auto=format&fit=crop";
 
 const ProductCard = (rawProps) => {
   // Soporta ambos patrones:
@@ -15,6 +18,7 @@ const ProductCard = (rawProps) => {
     id,
     title,
     imageProduct,
+    imageInfo,
     price,
     caracteristics,
     rating,
@@ -48,13 +52,13 @@ const ProductCard = (rawProps) => {
       );
       console.log("Calificación guardada:", response.data);
     } catch (error) {
-      console.error("Error al guardar la calificación:",
+      console.error(
+        "Error al guardar la calificación:",
         error.response ? error.response.data : error.message
       );
     }
   };
 
-  // Evita crashear si aún no hay datos (por ejemplo, primer render)
   if (!id) return null;
 
   const safePrice =
@@ -64,7 +68,15 @@ const ProductCard = (rawProps) => {
       ? 0
       : Number(price);
 
-  const product = { id, title, imageProduct, price: safePrice, caracteristics };
+  const imgSrc = imageProduct || imageInfo || FALLBACK_IMG;
+
+  const product = {
+    id,
+    title,
+    imageProduct: imgSrc,
+    price: safePrice,
+    caracteristics,
+  };
 
   return (
     <>
@@ -78,13 +90,18 @@ const ProductCard = (rawProps) => {
       )}
 
       <div className="product-card" onClick={openModal}>
-        <img src={imageProduct} alt={title} />
+        <img
+          src={imgSrc}
+          alt={title || "Producto"}
+          className="product-image"
+          onError={(e) => (e.currentTarget.src = FALLBACK_IMG)}
+        />
         <div className="w-product">
           <button
             className="add-to-cart-p"
             onClick={(e) => {
               e.stopPropagation();
-              addToCart({ id, title, price: safePrice, imageProduct });
+              addToCart({ id, title, price: safePrice, imageProduct: imgSrc });
             }}
           >
             Añadir al carrito
@@ -108,7 +125,7 @@ const ProductCard = (rawProps) => {
                 onChange={handleRatingChange}
                 checked={selectedRating === star}
               />
-              <label title={`${star} estrellas`} htmlFor={`star${star}-${id}`}></label>
+              <label title={`${star} estrellas`} htmlFor={`star${star}-${id}`} />
             </React.Fragment>
           ))}
         </div>

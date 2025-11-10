@@ -4,19 +4,18 @@ import { getProducts } from "../../services/api";
 import CaracNasa from "../Caracteristics/CaracNasa";
 import CaracSpaceX from "../Caracteristics/CaracSpaceX";
 
-// La API ya devuelve { id, title, description, descriptionInfo, imageUrl, imageInfo, tipoNave, caracteristics, price, quantity, active }
 const adaptProduct = (p) => ({
-  id: p.id,
+  id: p.id ?? p.product_id,
   title: p.title,
-  tipoNave: p.tipoNave, // ya viene mapeado desde el backend
+  tipoNave: p.tipoNave ?? p.tipo_nave ?? "",
   descriptionProduct: p.description,
-  descriptionInfo: p.descriptionInfo,
+  descriptionInfo: p.descriptionInfo ?? p.description_info,
   caracteristics: p.caracteristics,
-  imageProduct: p.imageUrl, // ← tu Carousel espera imageProduct
-  imageInfo: p.imageInfo,
-  price: Number(p.price),
-  quantity: p.quantity,
-  active: p.active,
+  imageProduct: p.imageUrl ?? p.image_product,
+  imageInfo: p.imageInfo ?? p.image_info,
+  price: Number(p.price ?? 0),
+  quantity: p.quantity ?? 0,
+  active: p.active ?? p.is_active ?? 1,
 });
 
 const Products = () => {
@@ -24,40 +23,41 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let alive = true;
     (async () => {
       try {
-        const list = await getProducts({ active: 1 }); // getProducts ya retorna data.items
-        if (!alive) return;
-        setItems(list.map(adaptProduct));
-      } catch (err) {
-        console.error("Error al cargar productos:", err);
+        const list = await getProducts({ active: 1 }); // devuelve r.data.items
+        const adapted = list.map(adaptProduct);
+        console.log("Productos cargados:", adapted.length, adapted.slice(0, 2));
+        setItems(adapted);
+      } catch (e) {
+        console.error("Error al cargar los productos:", e);
       } finally {
-        if (alive) setLoading(false);
+        setLoading(false);
       }
     })();
-    return () => { alive = false; };
   }, []);
 
-  const spaceXProducts = useMemo(
-    () => items.filter((p) => (p.tipoNave || "").toLowerCase() === "SpaceX"),
+  const spaceX = useMemo(
+    () => items.filter(p => (p.tipoNave || "").toLowerCase() === "spacex"),
     [items]
   );
-  const nasaProducts = useMemo(
-    () => items.filter((p) => (p.tipoNave || "").toLowerCase() === "Nasa"),
+  const nasa = useMemo(
+    () => items.filter(p => (p.tipoNave || "").toLowerCase() === "nasa"),
     [items]
   );
 
-  if (loading) return null; // o un spinner si prefieres
+  if (loading) return null;
 
   return (
-    <section className="products" id="productos">
+    <section id="productos" className="products">
       <h2 className="products-title">Naves de SpaceX</h2>
-      <Carousel products={spaceXProducts} />
+      <Carousel products={spaceX.length ? spaceX : items} />
+
       <CaracNasa />
 
       <h2 className="products-title">Naves de NASA</h2>
-      <Carousel products={nasaProducts} />
+      <Carousel products={nasa.length ? nasa : items} />
+
       <CaracSpaceX />
     </section>
   );

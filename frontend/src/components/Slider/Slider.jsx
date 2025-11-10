@@ -1,11 +1,33 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import styles from "./Slider.module.css";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&q=80&auto=format&fit=crop";
 
 function Slider({ imagenes = [] }) {
-  const length = imagenes.length;
+  // Normaliza lo que venga: imageInfo / image_info / imageUrl / image_product, etc.
+  const items = useMemo(
+    () =>
+      (Array.isArray(imagenes) ? imagenes : []).map((it, i) => {
+        const id =
+          it?.id ?? it?.product_id ?? it?.sku ?? `noid-${i}`;
+        const title = it?.title || "Producto";
+        const imageInfo =
+          it?.imageInfo ?? it?.image_info ?? it?.imageUrl ?? it?.image_product ?? null;
+        const descriptionInfo =
+          it?.descriptionInfo ?? it?.description_info ?? it?.description ?? "";
+
+        return {
+          id,
+          title,
+          imageInfo: imageInfo || FALLBACK_IMG,
+          descriptionInfo,
+        };
+      }),
+    [imagenes]
+  );
+
+  const length = items.length;
   const [imagenActual, setImagenActual] = useState(0);
 
   // Evita intervalos si no hay suficientes imágenes
@@ -42,30 +64,36 @@ function Slider({ imagenes = [] }) {
 
   return (
     <section id="informacion" className={styles["slider-container"]}>
-      <button onClick={anteriorImagen} className={styles["slider-button"]} aria-label="Anterior">
+      <button
+        onClick={anteriorImagen}
+        className={styles["slider-button"]}
+        aria-label="Anterior"
+      >
         {"<"}
       </button>
 
-      {imagenes.map((imagen, index) => {
-        // ✅ key robusta: usa id si existe, si no combina con index
-        const key = `${imagen?.id ?? "noid"}-${index}`;
-        const src = imagen?.imageInfo || imagen?.image || FALLBACK_IMG;
-        const title = imagen?.title || "Producto";
-        const desc = imagen?.descriptionInfo || imagen?.description || "";
+      {items.map((imagen, index) => {
+        const key = `${imagen.id}-${index}`;
+        const active = imagenActual === index;
 
         return (
           <div
             key={key}
             className={`${styles["slider-slide"]} ${
-              imagenActual === index ? styles["slider-active"] : ""
+              active ? styles["slider-active"] : ""
             }`}
           >
-            {imagenActual === index && (
+            {active && (
               <>
-                <img src={src} alt={title} className={styles["slider-img"]} />
+                <img
+                  src={imagen.imageInfo}
+                  alt={imagen.title}
+                  className={styles["slider-img"]}
+                  onError={(e) => (e.currentTarget.src = FALLBACK_IMG)}
+                />
                 <div className={styles["slider-text"]}>
-                  <h3>{title}</h3>
-                  <p className="i-description">{desc}</p>
+                  <h3>{imagen.title}</h3>
+                  <p className="i-description">{imagen.descriptionInfo}</p>
                 </div>
               </>
             )}
@@ -73,13 +101,16 @@ function Slider({ imagenes = [] }) {
         );
       })}
 
-      <button onClick={siguienteImagen} className={styles["slider-button"]} aria-label="Siguiente">
+      <button
+        onClick={siguienteImagen}
+        className={styles["slider-button"]}
+        aria-label="Siguiente"
+      >
         {">"}
       </button>
 
       <div className={styles["slider-indicators"]}>
-        {imagenes.map((_, index) => (
-          // Aquí está bien usar index porque es un indicador ligado a posición
+        {items.map((_, index) => (
           <span
             key={`dot-${index}`}
             className={
