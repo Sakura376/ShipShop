@@ -46,7 +46,7 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdP
       }
 
       await axios.post(
-        `${API_URL}/api/payments`,
+        `${API_URL}/payments`,
         { order_id: orderId },
         {
           headers: {

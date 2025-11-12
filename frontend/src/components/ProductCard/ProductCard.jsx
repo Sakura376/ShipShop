@@ -36,28 +36,63 @@ const ProductCard = (rawProps) => {
   const closeModal = () => setIsModalOpen(false);
 
   const handleRatingChange = async (event) => {
-    const ratingValue = parseInt(event.target.value, 10);
-    setSelectedRating(ratingValue);
+    event.stopPropagation();
 
-    const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
-    if (!userId || !token) return console.error("Usuario no autenticado.");
-    if (ratingValue < 1 || ratingValue > 5) return console.error("Calificación inválida.");
+    if (!token) {
+      event.preventDefault();
+      alert("Debes iniciar sesión para calificar productos.");
+      return;
+    }
+
+    const ratingValue = parseInt(event.target.value, 10);
+    if (ratingValue < 1 || ratingValue > 5) {
+      event.preventDefault();
+      console.error("Calificación inválida.");
+      return;
+    }
 
     try {
-      const response = await axios.post(
-        `${API_URL}/ratings/create`,
-        { product_id: id, user_id: userId, rating_value: ratingValue },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await axios.post(
+        `${API_URL}/products/${id}/ratings`,
+        {
+          // 👇 IMPORTANTE: el backend espera "rating", no "rating_value"
+          rating: ratingValue,
+          // comment: "opcional si quieres enviar algo"
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      console.log("Calificación guardada:", response.data);
+
+      // Si el backend responde OK, reflejamos selección
+      setSelectedRating(ratingValue);
+      console.log("Calificación guardada:", res.data);
     } catch (error) {
       console.error(
         "Error al guardar la calificación:",
-        error.response ? error.response.data : error.message
+        error.response?.data || error.message
       );
+
+      const status = error.response?.status;
+      if (status === 403) {
+        alert("Solo puedes calificar productos que has comprado.");
+      } else if (status === 401) {
+        alert("Tu sesión expiró. Inicia sesión nuevamente.");
+      } else if (status === 400) {
+        alert("Datos de calificación inválidos.");
+      } else {
+        alert("No se pudo guardar la calificación.");
+      }
+
+      event.preventDefault();
     }
   };
+
+
+
 
   if (!id) return null;
 
@@ -65,8 +100,8 @@ const ProductCard = (rawProps) => {
     typeof price === "number"
       ? price
       : Number.isNaN(Number(price))
-      ? 0
-      : Number(price);
+        ? 0
+        : Number(price);
 
   const imgSrc = imageProduct || imageInfo || FALLBACK_IMG;
 
@@ -123,9 +158,14 @@ const ProductCard = (rawProps) => {
                 id={`star${star}-${id}`}
                 type="radio"
                 onChange={handleRatingChange}
+                onClick={(e) => e.stopPropagation()}
                 checked={selectedRating === star}
               />
-              <label title={`${star} estrellas`} htmlFor={`star${star}-${id}`} />
+              <label
+                title={`${star} estrellas`}
+                htmlFor={`star${star}-${id}`}
+                onClick={(e) => e.stopPropagation()}
+              />
             </React.Fragment>
           ))}
         </div>

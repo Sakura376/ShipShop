@@ -15,13 +15,13 @@ function Login({ closeModal, statusModal, onLoginSuccess }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post(`${API_URL}/api/users/login`, {
+      const { data } = await axios.post(`${API_URL}/users/login`, {
         email: username,
         password,
       });
       localStorage.setItem("token", data.token);
 
-      const me = await axios.get(`${API_URL}/api/users/me`, {
+      const me = await axios.get(`${API_URL}/users/me`, {
         headers: { Authorization: `Bearer ${data.token}` },
       });
       localStorage.setItem("user", JSON.stringify(me.data));

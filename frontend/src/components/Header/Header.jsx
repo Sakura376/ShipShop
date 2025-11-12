@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import "./Header.css";
 import { useCart } from "../CartModal/CartGlobal";
 import Login from "../Login/login";
-import { API_URL } from "../../config"; // Asegúrate de que está configurada la URL de la API
+import { API_URL } from "../../config";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -11,36 +11,57 @@ const Header = () => {
   const [activeModal, setActiveModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState("");
-  const [userRatings, setUserRatings] = useState([]); // Estado para calificaciones del usuario
+  const [userRatings, setUserRatings] = useState([]); // por ahora opcional/no usado
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
     const storedUserName = localStorage.getItem("userName");
-    if (storedUserName) {
+    const storedUser = localStorage.getItem("user");
+
+    if (!token) return;
+
+    let finalName = storedUserName;
+
+    if (!finalName && storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        finalName = parsed.username || parsed.name || "";
+        const id = parsed.id || parsed.user_id;
+
+        if (finalName) {
+          localStorage.setItem("userName", finalName);
+        }
+        if (id) {
+          localStorage.setItem("userId", id);
+        }
+      } catch (e) {
+        console.error("No se pudo parsear localStorage.user:", e);
+      }
+    }
+
+    if (finalName) {
       setIsAuthenticated(true);
-      setUserName(storedUserName);
-      loadUserRatings(); // Cargar calificaciones si el usuario ya está autenticado
+      setUserName(finalName);
+      // loadUserRatings(); // solo si algún día creas /ratings/user/:id
     }
   }, []);
 
-  // Función para cargar las calificaciones del usuario desde el backend
-  const loadUserRatings = async () => {
-    const userId = localStorage.getItem("userId");
-    const token = localStorage.getItem("token");
-    if (!userId || !token) return;
-
-    try {
-      const response = await fetch(`${API_URL}/ratings/ratings/user/${userId}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      setUserRatings(data); // Guardamos las calificaciones en el estado
-    } catch (error) {
-      console.error("Error al cargar las calificaciones del usuario:", error);
-    }
-  };
+  // De momento esta función apunta a un endpoint inexistente, así que mejor dejarla comentada
+  // const loadUserRatings = async () => {
+  //   const userId = localStorage.getItem("userId");
+  //   const token = localStorage.getItem("token");
+  //   if (!userId || !token) return;
+  //   try {
+  //     const response = await fetch(`${API_URL}/ratings/user/${userId}`, {
+  //       method: "GET",
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  //     const data = await response.json();
+  //     setUserRatings(data);
+  //   } catch (error) {
+  //     console.error("Error al cargar las calificaciones del usuario:", error);
+  //   }
+  // };
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
 
@@ -49,25 +70,26 @@ const Header = () => {
   };
 
   const handleLogout = () => {
-    // Elimina la información de autenticación y calificaciones del almacenamiento local
     localStorage.removeItem("token");
     localStorage.removeItem("userName");
     localStorage.removeItem("userId");
+    localStorage.removeItem("user");
 
-    // Reinicia el estado de autenticación y el nombre de usuario
     setIsAuthenticated(false);
     setUserName("");
-    setUserRatings([]); // Limpia las calificaciones al cerrar sesión
+    setUserRatings([]);
 
-    // Recargar la página
     window.location.reload();
   };
 
   const handleLoginSuccess = (username) => {
+    if (username) {
+      localStorage.setItem("userName", username);
+      setUserName(username);
+    }
     setIsAuthenticated(true);
-    setUserName(username);
     setActiveModal(false);
-    loadUserRatings(); // Cargar las calificaciones después de iniciar sesión
+    // loadUserRatings();
   };
 
   return (
@@ -127,7 +149,11 @@ const Header = () => {
       </section>
 
       {activeModal && (
-        <Login closeModal={handleModal} statusModal={activeModal} onLoginSuccess={handleLoginSuccess} />
+        <Login
+          closeModal={handleModal}
+          statusModal={activeModal}
+          onLoginSuccess={handleLoginSuccess}
+        />
       )}
     </>
   );

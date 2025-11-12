@@ -56,7 +56,7 @@ exports.login = async (req, res) => {
 exports.me = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: ['user_id','username','email','status','last_login_at','created_at']
+      attributes: ['user_id', 'username', 'email', 'status', 'last_login_at', 'created_at']
     });
     if (!user) return res.status(404).json({ error: 'No encontrado' });
     return res.json(user);
@@ -89,13 +89,13 @@ exports.register = async (req, res) => {
     // Upsert en pending_users
     const [pending, created] = await PendingUser.findOrCreate({
       where: { email },
-      defaults: { email, username, password_hash, hash_algo: 'argon2id', code_hash, expires_at: expiresAt },
+      defaults: { email, username, password_hash, password_algo: 'argon2id', code_hash, expires_at: expiresAt },
     });
     if (!created) {
       await pending.update({
         username,
         password_hash,
-        hash_algo: 'argon2id',
+        password_algo: 'argon2id',
         code_hash,
         attempts: 0,
         expires_at: expiresAt,
@@ -128,73 +128,124 @@ exports.register = async (req, res) => {
 };
 
 // POST /api/users/verify   { email, code }
+// POST /api/users/verify   { email, code }
 exports.verifyEmail = async (req, res) => {
   const t = await sequelize.transaction();
+
   try {
     let { email, code } = req.body;
+
     if (!email || !code) {
       await t.rollback();
       return res.status(400).json({ error: 'Email y código requeridos' });
     }
+
     email = String(email).trim();
+    code = String(code).trim();
 
-    const pending = await PendingUser.findOne({ where: { email }, transaction: t, lock: t.LOCK.UPDATE });
-    if (!pending)            { await t.rollback(); return res.status(404).json({ error: 'No hay registro pendiente' }); }
-    if (pending.used_at)     { await t.rollback(); return res.status(409).json({ error: 'Este registro ya fue verificado' }); }
-    if (new Date(pending.expires_at) < new Date()) { await t.rollback(); return res.status(410).json({ error: 'Código expirado' }); }
-    if ((pending.attempts || 0) >= 5) { await t.rollback(); return res.status(423).json({ error: 'Demasiados intentos. Solicita reenvío.' }); }
+    // Bloqueamos el registro pendiente mientras verificamos
+    const pending = await PendingUser.findOne({
+      where: { email },
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
 
-    const ok = await argon2.verify(pending.code_hash, String(code));
-    if (!ok) {
-      await pending.update({ attempts: (pending.attempts || 0) + 1 }, { transaction: t });
-      await t.commit();
-      return res.status(400).json({ error: 'Código inválido' });
+    if (!pending) {
+      await t.rollback();
+      return res.status(404).json({ error: 'No hay registro pendiente' });
     }
 
-    // Preparar name/username seguros si faltan
-    const fallback = safeFromEmail(email);
-    const name = pending.name && pending.name.trim() ? pending.name.trim() : fallback;   // 👈 evita notNull
-    const username = pending.username && pending.username.trim() ? pending.username.trim() : fallback;
+    if (pending.used_at) {
+      await t.rollback();
+      return res.status(409).json({ error: 'Este registro ya fue verificado' });
+    }
 
-    // Evitar duplicados
+    if (new Date(pending.expires_at) < new Date()) {
+      await t.rollback();
+      return res.status(410).json({ error: 'Código expirado' });
+    }
+
+    if ((pending.attempts || 0) >= 5) {
+      await t.rollback();
+      return res
+        .status(423)
+        .json({ error: 'Demasiados intentos. Solicita reenvío.' });
+    }
+
+    // Verificar OTP
+    const ok = await argon2.verify(pending.code_hash, code);
+    if (!ok) {
+      await pending.update(
+        { attempts: (pending.attempts || 0) + 1 },
+        { transaction: t }
+      );
+      await t.commit();
+      return res.status(401).json({ error: 'Código incorrecto' });
+    }
+
+    // Username desde pending_users (ya viene del register)
+    const username = pending.username;
+
+    // Evitar duplicados en tabla users
     const dup = await User.findOne({
-      where: { [Op.or]: [{ username }, { email: pending.email }] },
+      where: {
+        [Op.or]: [{ username }, { email: pending.email }],
+      },
       transaction: t,
-      lock: t.LOCK.UPDATE
+      lock: t.LOCK.UPDATE,
     });
+
     if (dup) {
       await t.rollback();
-      return res.status(409).json({ error: 'Usuario o email ya existe' });
+      return res
+        .status(409)
+        .json({ error: 'Usuario o email ya existen en el sistema' });
     }
 
-    // Crear usuario definitivo (INCLUYENDO name)
-    const user = await User.create({
-      name,                                  // 👈 requerido por tu modelo
-      username,
-      email: pending.email,
-      password_hash: pending.password_hash,  // asumiendo que tu modelo usa snake_case
-      hash_algo: pending.hash_algo || 'argon2id',
-      status: 'active',
-      email_verified_at: new Date()
-    }, { transaction: t });
+    // Crear usuario definitivo
+    const user = await User.create(
+      {
+        // 👇 nuevo: llenamos el name obligatorio
+        name: pending.username || pending.email,
+        username,
+        email: pending.email,
+        password_hash: pending.password_hash,
+        password_algo: pending.password_algo || "argon2id",
+        status: "active",
+        email_verified_at: new Date(),
+      },
+      { transaction: t }
+    );
 
-    await pending.update({ used_at: new Date(), attempts: 0 }, { transaction: t });
+
+    // Marcar pending como usado
+    await pending.update(
+      { used_at: new Date(), attempts: 0 },
+      { transaction: t }
+    );
 
     await t.commit();
 
+    // Opcional: devolver token para loguearlo de una
     const token = jwt.sign(
-      { id: user.user_id, email: user.email },
+      { id: user.user_id || user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: '2h' }
     );
+
     return res.json({
+      message: 'Cuenta verificada con éxito',
       token,
-      user: { user_id: user.user_id, username: user.username, name: user.name, email: user.email }
+      user: {
+        id: user.user_id || user.id,
+        username: user.username,
+        email: user.email,
+      },
     });
-  } catch (e) {
+  } catch (err) {
     await t.rollback();
-    console.error(e);
-    return res.status(500).json({ error: 'Error verificando correo' });
+    console.error('Error en verifyEmail:', err);
+    return res.status(500).json({ error: 'Error al verificar el código' });
   }
 };
 
