@@ -134,3 +134,13 @@
     padding: 20px;
   }
 }
+
+/* src/components/Login/login.css */
+.log-alert{
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 0, 0, .1);
+  border: 1px solid rgba(255, 0, 0, .35);
+  font-size: 0.95rem;
+}

@@ -35,7 +35,7 @@ const VerifyTokenModal = ({ email, onClose, onVerified }) => {
 
             setTimeout(() => {
                 if (onVerified) onVerified(); // aquí decides a dónde lo mandas
-                onClose();
+                //onClose();
             }, 800);
 
         } catch (err) {
