@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Product } = require('../models');
+const product = require('../models/product');
 
 exports.list = async (req, res) => {
   try {
@@ -106,3 +107,30 @@ exports.remove = async (req, res) => {
     res.status(500).json({ error: 'Error eliminando producto' });
   }
 };
+
+exports.searchByName = async (req, res) => {
+  try {
+    const { name } = req.query;
+
+    if (!name || name.trim() === "") {
+      return res.json([]); // nada que buscar
+    }
+
+    const products = await Product.findAll({
+      where: {
+        title: {
+          [Op.like]: `%${name}%`
+        }
+      },
+      limit: 10
+    });
+
+    return res.json(products);
+  } catch (error) {
+    console.error("Error buscando productos:", error);
+    return res.status(500).json({ error: "Error buscando productos" });
+  }
+};
+
+
+

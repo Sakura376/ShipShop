@@ -9,9 +9,7 @@ const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80&auto=format&fit=crop";
 
 const ProductCard = (rawProps) => {
-  // Soporta ambos patrones:
-  // 1) <ProductCard product={p} />
-  // 2) <ProductCard id={...} title={...} ... />
+
   const p = rawProps?.product ? rawProps.product : rawProps || {};
 
   const {
@@ -124,13 +122,18 @@ const ProductCard = (rawProps) => {
         />
       )}
 
-      <div className="product-card" onClick={openModal}>
+      <div
+        className="product-card"
+        data-product-id={id}   // 👈 AQUÍ MARCAMOS EL PRODUCTO
+        onClick={openModal}
+      >
         <img
           src={imgSrc}
           alt={title || "Producto"}
           className="product-image"
           onError={(e) => (e.currentTarget.src = FALLBACK_IMG)}
         />
+
         <div className="w-product">
           <button
             className="add-to-cart-p"

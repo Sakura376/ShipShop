@@ -10,7 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../../config";
-import VerifyTokenModal from "./VerifyTokenModal"; // ⬅️ nuevo import
+import VerifyTokenModal from "./VerifyTokenModal";
 
 function Register() {
   const [username, setUsername] = useState("");
@@ -19,8 +19,8 @@ function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-  const [showVerify, setShowVerify] = useState(false);      // ⬅️ controla el modal
-  const [registeredEmail, setRegisteredEmail] = useState(""); // ⬅️ email al que se envió el código
+  const [showVerify, setShowVerify] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const navigate = useNavigate();
 
@@ -28,31 +28,40 @@ function Register() {
     e.preventDefault();
     setError("");
 
-    // Validaciones básicas
-    if (!username || !email || !password || !confirmPassword) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Validaciones personalizadas
+    if (!username || !cleanEmail || !password || !confirmPassword) {
       setError("Completa todos los campos.");
       return;
     }
+
+    // Validación de correo @gmail.com
+    const regexGmail = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    if (!regexGmail.test(cleanEmail)) {
+      setError("Ingresa un correo @gmail.com válido.");
+      return;
+    }
+
     if (password.length < 8) {
       setError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
+
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden.");
       return;
     }
 
     try {
-      // Tu endpoint actual de registro
       await axios.post(`${API_URL}/users/register`, {
         username,
-        email,
+        email: cleanEmail,
         password,
       });
 
-      // Si el backend creó el pending user y envió el código:
-      setRegisteredEmail(email);
-      setShowVerify(true); // abrimos el modal para ingresar el token
+      setRegisteredEmail(cleanEmail);
+      setShowVerify(true);
     } catch (err) {
       const s = err?.response?.status;
       const msg =
@@ -70,30 +79,21 @@ function Register() {
     navigate("/");
   };
 
-  // Cuando el backend confirma el código correctamente:
   const handleVerified = () => {
-    // ya está logueado, mándalo a la home o donde muestres sesión iniciada
-    navigate("/"); // o "/home" según tus rutas reales
+    navigate("/");
   };
-
 
   return (
     <>
       <form onSubmit={handleRegister} className="register-form">
-        <button
-          type="button"
-          className="back-button"
-          onClick={handleBack}
-        >
+        <button type="button" className="back-button" onClick={handleBack}>
           <FontAwesomeIcon icon={faArrowLeft} />
         </button>
 
         <h2 className="r-title">Register</h2>
 
         <div className="input-register">
-          <label className="label" htmlFor="username">
-            Username:
-          </label>
+          <label className="label" htmlFor="username">Username:</label>
           <FontAwesomeIcon icon={faUser} className="input-icon" />
           <input
             className="input"
@@ -101,14 +101,11 @@ function Register() {
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            required
           />
         </div>
 
         <div className="input-register">
-          <label className="label" htmlFor="email">
-            Email:
-          </label>
+          <label className="label" htmlFor="email">Email:</label>
           <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
           <input
             className="input"
@@ -116,14 +113,11 @@ function Register() {
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
           />
         </div>
 
         <div className="input-register">
-          <label className="label" htmlFor="password">
-            Password:
-          </label>
+          <label className="label" htmlFor="password">Password:</label>
           <FontAwesomeIcon icon={faLock} className="input-icon" />
           <input
             className="input"
@@ -131,14 +125,11 @@ function Register() {
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
           />
         </div>
 
         <div className="input-register">
-          <label className="label" htmlFor="confirmPassword">
-            Confirm Password:
-          </label>
+          <label className="label" htmlFor="confirmPassword">Confirm Password:</label>
           <FontAwesomeIcon icon={faLock} className="input-icon" />
           <input
             className="input"
@@ -146,10 +137,10 @@ function Register() {
             id="confirmPassword"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            required
           />
         </div>
 
+        {/* Mensaje de error debajo del formulario */}
         {error && <div className="error-msg">{error}</div>}
 
         <button className="reg-button" type="submit">

@@ -3,7 +3,7 @@ nav {
   top: 0;
   z-index: 1000;
   background: rgb(0, 0, 0);
-  transition: background-color 0.3s ease; 
+  transition: background-color 0.3s ease;
   padding: 10px 20px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0);
 }
@@ -23,15 +23,52 @@ nav {
   font-size: 20px;
   cursor: pointer;
   padding: 5px;
-  margin-left: 120px; 
+  margin-left: 120px;
   transition: color 0.3s ease, background-color 0.3s ease;
- 
+
+}
+
+.input-container {
+  position: relative;
+  /* necesario para posicionar el dropdown */
+}
+
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 260px;
+  /* ajusta al gusto */
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 6px;
+  margin-top: 4px;
+  z-index: 1000;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.dropdown-item img {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.dropdown-item:hover {
+  background: #222;
 }
 
 .shopping-cart {
   display: flex;
   align-items: center;
-  flex-direction:row;
+  flex-direction: row;
   gap: 20px;
 }
 
@@ -57,7 +94,7 @@ nav {
   justify-content: center;
 }
 
-.log-button{
+.log-button {
   background-color: transparent;
   border: none;
   color: #fff;
@@ -66,7 +103,7 @@ nav {
   padding: 5px;
   margin-left: 10px;
   transition: color 0.3s ease, background-color 0.3s ease;
-  display:flex;
+  display: flex;
   gap: 10px;
   align-items: center;
   justify-content: center;
@@ -172,7 +209,7 @@ nav ul ul a:focus {
   text-decoration: none;
 }
 
-nav li:hover > ul {
+nav li:hover>ul {
   display: block;
   animation: fadeIn 0.3s ease-in-out;
 }
@@ -181,6 +218,7 @@ nav li:hover > ul {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -215,8 +253,8 @@ nav li:hover > ul {
   pointer-events: none;
 }
 
-.input-container input[type="text"]:focus ~ .label,
-.input-container input[type="text"]:valid ~ .label {
+.input-container input[type="text"]:focus~.label,
+.input-container input[type="text"]:valid~.label {
   top: -20px;
   font-size: 16px;
   color: #fff;
@@ -233,8 +271,8 @@ nav li:hover > ul {
   transition: all 0.3s ease;
 }
 
-.input-container input[type="text"]:focus ~ .underline,
-.input-container input[type="text"]:valid ~ .underline {
+.input-container input[type="text"]:focus~.underline,
+.input-container input[type="text"]:valid~.underline {
   transform: scaleX(1);
 }
 
@@ -303,7 +341,7 @@ nav li:hover > ul {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   background-color: #000;
   height: calc(100vh - 45px);
-  background-image: url("https://www.shutterstock.com/shutterstock/videos/3467105093/thumb/1.jpg?ip=x480"); 
+  background-image: url("https://www.shutterstock.com/shutterstock/videos/3467105093/thumb/1.jpg?ip=x480");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -349,5 +387,3 @@ nav li:hover > ul {
     font-size: 1.2em;
   }
 }
-
-

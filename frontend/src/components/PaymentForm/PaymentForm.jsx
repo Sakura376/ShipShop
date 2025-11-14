@@ -4,13 +4,8 @@ import "./PaymentForm.css";
 import { v4 as uuid } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCreditCard, faCalendarAlt, faLock, faUser } from "@fortawesome/free-solid-svg-icons";
-import { API_URL } from "../../config"; // o toma de services/api si prefieres
+import { API_URL } from "../../config";
 
-// Props:
-// - onClose(): cierra el modal
-// - onConfirmPayment(): callback para vaciar carrito / finalizar
-// - totalAmount: número mostrado en UI
-// - orderId: (opcional) si no llega, se toma de localStorage('order_id')
 const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdProp }) => {
   const [formData, setFormData] = useState({
     cardNumber: "",
@@ -22,14 +17,52 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdP
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  // 🔹 Normalizamos la entrada según el campo
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let newValue = value;
+
+    if (name === "cardNumber") {
+      // solo dígitos, máximo 8
+      newValue = value.replace(/\D/g, "").slice(0, 8);
+    } else if (name === "cvv") {
+      // solo dígitos, máximo 3
+      newValue = value.replace(/\D/g, "").slice(0, 3);
+    } else if (name === "expiryDate") {
+      // formateo MM/AA
+      const digits = value.replace(/\D/g, "").slice(0, 4); // MMYY
+      if (digits.length <= 2) {
+        newValue = digits;
+      } else {
+        newValue = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+      }
+    }
+
+    setFormData({ ...formData, [name]: newValue });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // (Opcional) Validación de campos de tarjeta solo para UI. El backend NO usa estos datos.
+    // Campos vacíos
     if (!formData.cardNumber || !formData.expiryDate || !formData.cvv || !formData.cardholderName) {
       setError("Por favor, complete todos los campos.");
+      return;
+    }
+
+    // 🔹 Validaciones específicas
+    if (!/^\d{8}$/.test(formData.cardNumber)) {
+      setError("El número de tarjeta debe tener exactamente 8 dígitos.");
+      return;
+    }
+
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(formData.expiryDate)) {
+      setError("La fecha de vencimiento debe tener el formato MM/AA.");
+      return;
+    }
+
+    if (!/^\d{3}$/.test(formData.cvv)) {
+      setError("El CVV debe tener exactamente 3 dígitos.");
       return;
     }
 
@@ -51,13 +84,13 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdP
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Idempotency-Key": uuid(), // ← requerido por tu backend
+            "Idempotency-Key": uuid(),
           },
         }
       );
 
       setConfirmationMessage("¡Compra confirmada!");
-      onConfirmPayment?.(); // limpia carrito en el padre si aplica
+      onConfirmPayment?.();
 
       setTimeout(() => {
         setConfirmationMessage("");
@@ -75,7 +108,6 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdP
   };
 
   const handleOverlayClick = (e) => {
-    // Cierre robusto por click fuera
     if (e.currentTarget === e.target) onClose();
   };
 
@@ -93,6 +125,8 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdP
               onChange={handleChange}
               placeholder="Número de tarjeta"
               autoComplete="cc-number"
+              inputMode="numeric"
+              maxLength={8}
             />
           </div>
 
@@ -106,6 +140,8 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdP
               onChange={handleChange}
               placeholder="Fecha de vencimiento (MM/AA)"
               autoComplete="cc-exp"
+              inputMode="numeric"
+              maxLength={5}
             />
           </div>
 
@@ -119,6 +155,8 @@ const PaymentForm = ({ onClose, onConfirmPayment, totalAmount, orderId: orderIdP
               onChange={handleChange}
               placeholder="CVV"
               autoComplete="cc-csc"
+              inputMode="numeric"
+              maxLength={3}
             />
           </div>
 

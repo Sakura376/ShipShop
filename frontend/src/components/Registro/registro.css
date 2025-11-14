@@ -15,6 +15,14 @@
     color: #007bff;
 }
 
+.error-msg {
+  color: #ff4d4f;
+  margin-top: 10px;
+  font-size: 14px;
+  text-align: center;
+}
+
+
 .register-form {
     position: relative;
     display: flex;

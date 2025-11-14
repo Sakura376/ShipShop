@@ -5,8 +5,19 @@ const productController = require('../controllers/productController');
 const ratingController = require('../controllers/ratingController');
 const auth = require('../middleware/auth');
 const requireAdmin = require('../middleware/requireAdmin');
-const { validateList, validateGetOrDelete, validateCreateProduct, validateUpdateProduct } = require('../validators/productValidators');
-const { validateCreateOrUpdateRating, validateListRatings } = require('../validators/ratingValidators');
+const { 
+  validateList, 
+  validateGetOrDelete, 
+  validateCreateProduct, 
+  validateUpdateProduct 
+} = require('../validators/productValidators');
+const { 
+  validateCreateOrUpdateRating, 
+  validateListRatings 
+} = require('../validators/ratingValidators');
+
+// 🔍 Búsqueda por nombre (IMPORTANTE: antes de '/:id')
+router.get('/search', productController.searchByName);
 
 // Público (catálogo)
 router.get('/', validateList, productController.list);

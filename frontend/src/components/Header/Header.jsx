@@ -11,7 +11,8 @@ const Header = () => {
   const [activeModal, setActiveModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState("");
-  const [userRatings, setUserRatings] = useState([]); // por ahora opcional/no usado
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -46,22 +47,22 @@ const Header = () => {
     }
   }, []);
 
-  // De momento esta función apunta a un endpoint inexistente, así que mejor dejarla comentada
-  // const loadUserRatings = async () => {
-  //   const userId = localStorage.getItem("userId");
-  //   const token = localStorage.getItem("token");
-  //   if (!userId || !token) return;
-  //   try {
-  //     const response = await fetch(`${API_URL}/ratings/user/${userId}`, {
-  //       method: "GET",
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     const data = await response.json();
-  //     setUserRatings(data);
-  //   } catch (error) {
-  //     console.error("Error al cargar las calificaciones del usuario:", error);
-  //   }
-  // };
+  const handleSearch = async (text) => {
+    setSearchTerm(text);
+
+    if (text.trim() === "") {
+      setResults([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/products/search?name=${text}`);
+      const data = await res.json();
+      setResults(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
 
@@ -92,6 +93,49 @@ const Header = () => {
     // loadUserRatings();
   };
 
+const handleResultClick = (productId) => {
+  // 1. Ir a la sección de productos
+  const productsSection = document.getElementById("productos");
+  if (productsSection) {
+    productsSection.scrollIntoView({ behavior: "smooth" });
+  }
+
+  // 2. Dar un pequeño tiempo para que el scroll baje
+  setTimeout(() => {
+    const card = document.querySelector(
+      `[data-product-id="${productId}"]`
+    );
+
+    if (card) {
+      // Centrar la card
+      card.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+
+      // Simular un click en la card para abrir el modal
+      card.dispatchEvent(
+        new MouseEvent("click", {
+          view: window,
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+
+      // Limpiar el buscador y cerrar el dropdown
+      setResults([]);
+      setSearchTerm("");
+    } else {
+      console.warn("No se encontró card para productId:", productId);
+    }
+  }, 400);
+};
+
+
+
+
+
+
   return (
     <>
       <nav id="navbar">
@@ -107,13 +151,37 @@ const Header = () => {
           </ul>
 
           <div className="input-container">
-            <input type="text" id="input" required />
-            <label htmlFor="input" className="search">Search</label>
+            <input
+              type="text"
+              id="input"
+              required
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            <label htmlFor="input" className="search"></label>
             <div className="underline"></div>
             <button className="search-button">
               <i className="fas fa-search"></i>
             </button>
+
+            {/* 🔽 Dropdown de resultados */}
+            {results.length > 0 && (
+              <div className="search-dropdown">
+                {results.map((p) => (
+                  <div
+                    key={p.product_id}
+                    className="dropdown-item"
+                    onClick={() => handleResultClick(p.product_id)}
+                  >
+                    <img src={p.imageUrl} alt={p.title} />
+                    <span>{p.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
+
 
           <div className="shopping-cart">
             <button className="cart-container" onClick={toggleCart}>
